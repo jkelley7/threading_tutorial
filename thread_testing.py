@@ -64,35 +64,25 @@ def create_fakeheader(ua,browsers):
     ------------------------
     Returns:
     ------------------------
-    headers - a dictionary of a fake useragent"""
-    
+    headers - a dictionary of a fake useragent
+    """
+
     headers = {'User-Agent': pick_random_fakeheader(ua, browsers)}
     return headers
-
-def retry_request(session, url, timeout, headers, retry_number = 0, retry_threshold = 10):
-    """
-    Retry the request, if the request fails after n times then raise and error
-    """
-    page_response = session.get(url, verify=False, timeout=(33,33), headers = headers)
-    if page_response.ok:
-        return page_response
-    elif retry_number <= retry_threshold:
-        retry_number +=1
-        return retry_request(session, url, timeout, headers,retry_number, retry_threshold)
 
 def crawl_no_queue(url, result_dict, index):
     """ We want to ensure we just grab everything. We can spend time parsing it later
     
-    --------------------
+    ------------------------
     Params:
-    --------------------
+    ------------------------
     url = a url
     result_dict - an empty dictionary where page elements will be stored
     index - the index number which will loop over
 
-    --------------------
-    Return:
-    --------------------
+    ------------------------
+    Returns:
+    ------------------------
     return object is not possible with a thread object therefore just work on a global variable
     """
     try:
@@ -161,6 +151,26 @@ def parse_results(result_set):
                 cl = len('Zip Code:')
                 tag_value = tag.get_text()[cl:]
                 new_dict[key] = tag_value
+
+            if tag.span.text == 'Classification:':
+                    cl = len('Classification:')
+                    df.at[index,'zip_class'] = tag.get_text()[cl:]
+                    
+            if tag.span.text == 'City Type:':
+                ct = len('City Type:')
+                df.at[index,'zip_city_type'] = tag.get_text()[ct:]
+                
+            if tag.span.text == 'Time Zone:':
+                tz = len('Time Zone:')
+                df.at[index,'zip_time_zne'] = tag.get_text()[tz:]
+                
+            if tag.span.text == 'City:':
+                ci = len('City:')
+                df.at[index,'city'] = tag.get_text()[ci:]
+                
+            if tag.span.text == 'State:':
+                st = len('State:')
+                df.at[index,'state'] = tag.get_text()[st:]
     return new_dict
 
 
@@ -172,6 +182,9 @@ df['zip_'] = df.zip.str[:5]
 df = df.drop(columns = 'zip')
 df['zip_'] = df.zip_.astype(str).str.pad(width = 5, side = 'left', fillchar = '0')
 
+# please note this is for educational uses only 
+# we just want to experiment with the queue and threading option
+# we want to ensure we are understanding how queue and threading are working
 df['baselink'] = 'https://www.zip-codes.com/zip-code/'
 df['finallink'] = df.baselink.map(str) + df.zip_.map(str) + '/zip-code-' + df['zip_'].map(str) + '.asp'
 df['zip_class'] = ''

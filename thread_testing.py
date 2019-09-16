@@ -228,6 +228,7 @@ return_dict = parse_results(results)
 match_df = pd.DataFrame.from_dict(return_dict, orient = 'index').sort_index()
 con_df = pd.concat([df.zip_[:50], match_df], axis = 1 )
 con_df.columns = ['zip1', 'zip2', 'clss', 'ziptype' , 'tmz','city1', 'state']
+# wahoo they both match!
 con_df.query('zip1 != zip2')
 
 ###############################################################
@@ -242,7 +243,7 @@ con_df.query('zip1 != zip2')
 
 # Queue experiment
 nrows = df.shape[0]
-thread_size = 50
+thread_size = 100
 q = Queue(maxsize = 0) # 0 puts all of them in the queue, if you have a number then it only puts that number in the queue
 _logger = logging.getLogger('Queue Process')
 for index, row in df.iterrows():
@@ -266,7 +267,5 @@ df_new = pd.concat([df.zip_, match_df], axis = 1 )
 df_new.columns = ['old', 'new', 'clss', 'ziptype' , 'tmz','city1', 'state']
 df_new.query('old != new')
 
-for i in range(0,100):
-    if i % 10 == 0:
-        print(i)
+
 

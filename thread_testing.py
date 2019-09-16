@@ -170,7 +170,7 @@ def parse_results(result_set):
                 st = len('State:')
                 zstte = tag.get_text()[st:]
         
-        zip_attributes.extend([zcde, zclss, zctytpe, ztz, zcty, zcty, zstte])
+        zip_attributes.extend([zcde, zclss, zctytpe, ztz, zcty, zstte])
         new_dict[key] = zip_attributes
     return new_dict
 
@@ -227,7 +227,7 @@ for key, value in results.items():
 return_dict = parse_results(results)
 match_df = pd.DataFrame.from_dict(return_dict, orient = 'index').sort_index()
 con_df = pd.concat([df.zip_[:50], match_df], axis = 1 )
-con_df.columns = ['zip1', 'zip2', 'clss', 'ziptype' , 'tmz','city1', 'city2', 'state']
+con_df.columns = ['zip1', 'zip2', 'clss', 'ziptype' , 'tmz','city1', 'state']
 con_df.query('zip1 != zip2')
 
 ###############################################################
@@ -259,105 +259,14 @@ for i in range(thread_size):
 q.join()
 _logger.info('All tasks are completed')
 
-
-
 return_dict = parse_results(results)
 
 match_df = pd.DataFrame.from_dict(return_dict, orient = 'index').sort_index()
 df_new = pd.concat([df.zip_, match_df], axis = 1 )
-df_new.columns = ['old', 'new']
+df_new.columns = ['old', 'new', 'clss', 'ziptype' , 'tmz','city1', 'state']
 df_new.query('old != new')
 
 for i in range(0,100):
     if i % 10 == 0:
         print(i)
-
-
-
-
-###############################################################
-#
-#
-#
-#
-# REFERENCE
-#
-#
-#
-#
-###############################################################
-
-
-
-sess = requests.Session()
-for index, row in df.query('(zip_class == "") | (zip_class == "none")').iterrows():
-    # get the link
-    zip_toget = row['link']
-    if index % 1000 == 0:
-        print(index)
-    # scrape the page
-    try:
-        page_response = sess.get(zip_toget, verify=False, timeout=(30,30), headers = create_fakeheader(ua,browser))
-        #time.sleep(1.5)
-        if page_response.ok:
-            page_content = BeautifulSoup(page_response.content, "html.parser")
-            
-            # find the table
-            zip_table = page_content.find('table',{'class':'statTable'})
-            
-            # Loop over all the rows in the table
-            for tag in zip_table.find_all('tr'):
-            
-            # ahh, at last, getting what we came here for, the classification
-                if tag.span.text == 'Classification:':
-                    cl = len('Classification:')
-                    df.at[index,'zip_class'] = tag.get_text()[cl:]
-                    
-                if tag.span.text == 'City Type:':
-                    ct = len('City Type:')
-                    df.at[index,'zip_city_type'] = tag.get_text()[ct:]
-                    
-                if tag.span.text == 'Time Zone:':
-                    tz = len('Time Zone:')
-                    df.at[index,'zip_time_zne'] = tag.get_text()[tz:]
-                    
-                if tag.span.text == 'City:':
-                    ci = len('City:')
-                    df.at[index,'city'] = tag.get_text()[ci:]
-                    
-                if tag.span.text == 'State:':
-                    st = len('State:')
-                    df.at[index,'state'] = tag.get_text()[st:]
-                               
-        else:
-            df.at[index,'zip_class'] = 'none'
-            df.at[index,'zip_city_type'] = 'none'
-            df.at[index,'zip_time_zne'] = 'none'
-            df.at[index,'city'] = 'none'
-            df.at[index,'state'] = 'none'     
-    except requests.exceptions.Timeout as e:
-        print(f'error at index {index} retrying')
-        time.sleep(60)
-        continue    
-
-sess.close()
-
-df['zip_class'].unique()
-#newdf = (df['zip_class'].str.split(':', expand = True)[1].str.split(' ',n=1, expand = True))
-newdf = df['zip_class'].str.split(' ', expand = True)[0]
-newdf[2] = np.where(newdf[0] == '','N', newdf[0])
-df['zip_class_final'] = newdf[2]
-df['zip_class_final'] = np.where(df['zip_class'] == 'none','NF', df['zip_class_final'])
-tz = df['zip_time_zne'].str.split(' ', expand = True)[0]
-gmt = df['zip_time_zne'].str.split('(', expand = True)[1].str.strip(')')
-df['zip_time_zn_final'] = tz
-df['zip_time_off_gmt'] = gmt
-
-df.query('zip_class == "none"')
-df.loc[:,~df.columns.str.contains('link')]
-
-
-
-df.loc[:,~df.columns.str.contains('link')][['zipcde','zip_time_zne','zip_time_off_gmt']].to_csv(Path(to_data_gen_path / f'{notebook_run_date}_mcg_zip_code_timezone.csv'), index = False)
-
 

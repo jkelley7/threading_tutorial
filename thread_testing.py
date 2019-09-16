@@ -184,7 +184,9 @@ df['zip_'] = df.zip_.astype(str).str.pad(width = 5, side = 'left', fillchar = '0
 
 # please note this is for educational uses only 
 # we just want to experiment with the queue and threading option
-# we want to ensure we are understanding how queue and threading are working
+# zip codes is a good use case for us to scrape as it's relativly straight forward
+# error checking is fairly easy
+
 df['baselink'] = 'https://www.zip-codes.com/zip-code/'
 df['finallink'] = df.baselink.map(str) + df.zip_.map(str) + '/zip-code-' + df['zip_'].map(str) + '.asp'
 df['zip_class'] = ''
@@ -206,9 +208,8 @@ df = df.reset_index(drop=True)
 ###############################################################
 
 results = {}
-
-
 threads = []
+
 for index, row in df.iloc[:50,:].iterrows():
     print(index)
     process = Thread(target= crawl_no_queue, args = (row['finallink'],results,index))

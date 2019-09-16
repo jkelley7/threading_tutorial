@@ -25,9 +25,6 @@ warnings.filterwarnings("ignore")
 
 browser = ['chrome', 'internetexplorer', 'firefox', 'safari', 'opera']
 
-
-
-
 def get_random_header(browser):
     """choose a random header from a list of browsers"""
     return np.random.choice(browser)
@@ -125,12 +122,13 @@ def crawl_queue(q, result_set):
     return True
 
 def parse_results(result_set):
-    """ We want to ensure we just grab everything. We can spend time parsing it later
+    """
+    Takes contents from requests and parses them via BeautifulSoup
     
     --------------------
     Params:
     --------------------
-    result_set - a dictionary which contains content from teh requests library
+    result_set - a dictionary which contains content from the requests library
 
     --------------------
     Return:
@@ -143,41 +141,43 @@ def parse_results(result_set):
     # find the table
         zip_table = page_content.find('table',{'class':'statTable'})
         
+        zip_attributes = []
         # Loop over all the rows in the table
         for tag in zip_table.find_all('tr'):
         
         # ahh, at last, getting what we came here for, the classification
             if tag.span.text == 'Zip Code:':
-                cl = len('Zip Code:')
-                tag_value = tag.get_text()[cl:]
-                new_dict[key] = tag_value
+                zipl = len('Zip Code:')
+                zcde = tag.get_text()[zipl:]
 
             if tag.span.text == 'Classification:':
-                    cl = len('Classification:')
-                    df.at[index,'zip_class'] = tag.get_text()[cl:]
+                cl = len('Classification:')
+                zclss = tag.get_text()[cl:]
                     
             if tag.span.text == 'City Type:':
                 ct = len('City Type:')
-                df.at[index,'zip_city_type'] = tag.get_text()[ct:]
+                zctytpe = tag.get_text()[ct:]
                 
             if tag.span.text == 'Time Zone:':
                 tz = len('Time Zone:')
-                df.at[index,'zip_time_zne'] = tag.get_text()[tz:]
+                ztz = tag.get_text()[tz:]
                 
             if tag.span.text == 'City:':
                 ci = len('City:')
-                df.at[index,'city'] = tag.get_text()[ci:]
+                zcty = tag.get_text()[ci:]
                 
             if tag.span.text == 'State:':
                 st = len('State:')
-                df.at[index,'state'] = tag.get_text()[st:]
+                zstte = tag.get_text()[st:]
+        
+        zip_attributes.extend([zcde, zclss, zctytpe, ztz, zcty, zcty, zstte])
+        new_dict[key] = zip_attributes
     return new_dict
-
 
 
 df = pd.read_csv(parent_folder / 'data' / 'raw' / 'zipcde.csv')
 
-#duplicates in some field
+# duplicates in some fields
 df['zip_'] = df.zip.str[:5]
 df = df.drop(columns = 'zip')
 df['zip_'] = df.zip_.astype(str).str.pad(width = 5, side = 'left', fillchar = '0')
@@ -185,7 +185,8 @@ df['zip_'] = df.zip_.astype(str).str.pad(width = 5, side = 'left', fillchar = '0
 # please note this is for educational uses only 
 # we just want to experiment with the queue and threading option
 # zip codes is a good use case for us to scrape as it's relativly straight forward
-# error checking is fairly easy
+# this website where we obtained the data was relatively easy making it a good
+# eductational use error checking is fairly easy
 
 df['baselink'] = 'https://www.zip-codes.com/zip-code/'
 df['finallink'] = df.baselink.map(str) + df.zip_.map(str) + '/zip-code-' + df['zip_'].map(str) + '.asp'
@@ -194,7 +195,6 @@ df['zip_city_type'] = ''
 df['zip_time_zne'] = ''
 df['city'] = ''
 df['state'] = ''
-df[df.isna().any(1)]
 df = df.reset_index(drop=True)
 
 ###############################################################
@@ -209,13 +209,14 @@ df = df.reset_index(drop=True)
 
 results = {}
 threads = []
-
+# we are only using an example of 50 as to not create too many threads.
+# creating too many threads has the adverse of effect of throwing an error
 for index, row in df.iloc[:50,:].iterrows():
-    print(index)
     process = Thread(target= crawl_no_queue, args = (row['finallink'],results,index))
     process.start()
     threads.append(process)
 
+# using join() tells one thread to wait another to finish this prevents race conditions
 for process in threads:
     process.join()
 
@@ -223,13 +224,11 @@ for key, value in results.items():
     print(value)
 
 
-
-
 return_dict = parse_results(results)
-return_dict
-df.zip_[:50]
 match_df = pd.DataFrame.from_dict(return_dict, orient = 'index').sort_index()
-pd.concat([df.zip_[:50], match_df], axis = 1 )
+con_df = pd.concat([df.zip_[:50], match_df], axis = 1 )
+con_df.columns = ['zip1', 'zip2', 'clss', 'ziptype' , 'tmz','city1', 'city2', 'state']
+con_df.query('zip1 != zip2')
 
 ###############################################################
 #
@@ -242,6 +241,7 @@ pd.concat([df.zip_[:50], match_df], axis = 1 )
 ###############################################################
 
 # Queue experiment
+nrows = df.shape[0]
 thread_size = 50
 q = Queue(maxsize = 0) # 0 puts all of them in the queue, if you have a number then it only puts that number in the queue
 _logger = logging.getLogger('Queue Process')

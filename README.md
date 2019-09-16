@@ -1,5 +1,5 @@
 # threading_tutorial
-a short tutorial on threading and queue in python
+a short tutorial* (it was a tutorial for me, learning from others) on threading and queue in python
 
 The following articles/blogs/documentation has been helpful. Thank you!
 https://pymotw.com/2/Queue/

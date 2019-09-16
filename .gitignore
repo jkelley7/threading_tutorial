@@ -1,3 +1,4 @@
 .ipynb_check*
 .vscode
 logs/
+Untitled*.py
